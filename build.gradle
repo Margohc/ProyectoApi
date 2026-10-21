@@ -1,0 +1,48 @@
+plugins {
+    id 'java'
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:6.0.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'io.rest-assured:rest-assured:6.0.1'
+    testImplementation 'io.cucumber:cucumber-java:8.0.4'
+    testImplementation 'io.cucumber:cucumber-junit-platform-engine:8.0.4'
+    testImplementation platform('com.fasterxml.jackson:jackson-bom:2.22.0')
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+    testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.encoding = 'UTF-8'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.register('cucumberCli', JavaExec) {
+    group = 'verification'
+    description = 'Ejecuta escenarios Cucumber por etiqueta y genera un reporte HTML.'
+    dependsOn tasks.named('testClasses')
+    mainClass.set('io.cucumber.core.cli.Main')
+    classpath = sourceSets.test.runtimeClasspath
+
+    def suite = providers.gradleProperty('suite').getOrElse('@api')
+    args(
+        '--plugin', 'pretty',
+        '--plugin', "html:${layout.buildDirectory.get()}/reports/cucumber/index.html",
+        '--glue', 'steps',
+        '--tags', suite,
+        'src/test/resources/features'
+    )
+}
